@@ -1,1 +1,1 @@
-%collectionJson%
+collectionJson: JSON.stringify(collection)
