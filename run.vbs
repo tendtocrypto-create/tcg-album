@@ -1,0 +1,1 @@
+CreateObject("Wscript.Shell").Run chr(34) & "C:\Users\Alex\Desktop\STREAM TCG WIDGET\push.bat" & Chr(34), 0, False

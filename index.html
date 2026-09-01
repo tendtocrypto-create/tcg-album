@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="./">
     <title>TCG Booster Opener</title>
     <!-- Google Font Russo One einbinden -->
     <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
@@ -10,7 +11,7 @@
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             text-align: center; 
-            background: transparent; 
+            background: #0d0d0d; 
             color: white; 
             margin: 0; 
             overflow-x: hidden; 
@@ -722,7 +723,6 @@
                             imageWrapperClass = 'image-wrapper shiny-card';
                         }
                         
-                        // Hier wird jetzt automatisch der korrekte CDN-Link geholt!
                         let imagePath = cardImages[card.cardId];
                         if (!imagePath || imagePath.trim() === "") {
                             imagePath = `https://placehold.co/150x200/222/FFF?text=Card+${card.cardId}`;
@@ -875,7 +875,7 @@
                             totalCards: total,
                             packNumber: packNum,
                             cardsList: cardsList,
-                            collectionJson: JSON.stringify(collection) // Die Karten-Liste als Text verpackt
+                            collectionJson: JSON.stringify(collection)
                         }
                     };
                     wsSend.send(JSON.stringify(payload));
