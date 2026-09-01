@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCG Booster Opener</title>
+    <!-- Google Font Russo One einbinden -->
+    <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            text-align: center; 
+            background: transparent; 
+            color: white; 
+            margin: 0; 
+            overflow-x: hidden; 
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            padding-bottom: 40px;
+        }
+        
+        /* Titel-Anzeige permanent in der Bildschirmmitte, stark transparent */
+        .booster-title {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            font-family: 'Russo One', sans-serif;
+            font-size: 48px;
+            color: rgba(210, 150, 245, 0.22);
+            text-shadow: 0 0 25px rgba(155, 89, 182, 0.25), 0 0 50px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+            z-index: 5;
+            letter-spacing: 2px;
+            white-space: nowrap;
+        }
+
+        .booster-title.active {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        /* Booster-Container */
+        .booster-container {
+            position: relative;
+            width: 200px;
+            height: 290px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            perspective: 1000px;
+            transition: transform 0.8s ease-in, opacity 0.8s ease-in;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .booster-container.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .booster-container.hiding {
+            transform: translateY(-40px) scale(0.8);
+            opacity: 0;
+        }
+
+        .booster-half {
+            position: absolute;
+            width: 100%;
+            height: 50%;
+            overflow: hidden;
+            left: 0;
+            transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s;
+            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.5));
+        }
+
+        .booster-top {
+            top: 0;
+            border-radius: 6px 6px 0 0;
+            transform-origin: top;
+        }
+        .booster-top img { width: 200px; display: block; }
+
+        .booster-bottom {
+            bottom: 0;
+            border-radius: 0 0 6px 6px;
+            transform-origin: bottom;
+        }
+        .booster-bottom img { width: 200px; display: block; margin-top: -145px; }
+
+        .booster-container.ripped .booster-top {
+            transform: translateY(-140px) rotate(-10deg);
+            opacity: 0;
+        }
+        .booster-container.ripped .booster-bottom {
+            transform: translateY(140px) rotate(10deg);
+            opacity: 0;
+        }
+
+        @keyframes shake {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            10% { transform: translate(-3px, -2px) rotate(-3deg); }
+            20% { transform: translate(3px, 2px) rotate(3deg); }
+            30% { transform: translate(-4px, 1px) rotate(-2deg); }
+            40% { transform: translate(4px, -1px) rotate(2deg); }
+            50% { transform: translate(-2px, 3px) rotate(-4deg); }
+            60% { transform: translate(3px, -2px) rotate(3deg); }
+            70% { transform: translate(-3px, -1px) rotate(-2deg); }
+            80% { transform: translate(2px, 2px) rotate(2deg); }
+            90% { transform: translate(-1px, -2px) rotate(-1deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
+        .shake { animation: shake 1.2s ease-in-out; }
+
+        /* Container für die gezogenen Karten (Abstand 30px) */
+        .pack-container { 
+            display: flex; 
+            justify-content: center; 
+            gap: 30px; 
+            flex-wrap: wrap; 
+            perspective: 1500px;
+            width: 100%;
+        }
+
+        /* 3D Flip Kartenelement (15% größer: 184px x 282px) */
+        .card-slot { 
+            width: 184px; 
+            height: 282px;
+            opacity: 0;
+            transform: translateY(80px) scale(0.6);
+            transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            perspective: 1000px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .card-slot.revealed {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        .card-slot.hiding {
+            opacity: 0;
+            transform: translateY(100px) scale(0.7);
+            transition: all 0.8s ease-in;
+        }
+
+        /* Das drehbare Innenteil */
+        .card-flipper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+
+        .card-slot.flipped .card-flipper {
+            transform: rotateY(180deg);
+        }
+
+        /* --- DAS SPANNENDE WACKELN (LILA & GOLD IN UNTERER REIHE) --- */
+        @keyframes rowShakeAnim {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            20% { transform: translateY(-4px) rotate(-3deg); }
+            40% { transform: translateY(4px) rotate(3deg); }
+            60% { transform: translateY(-4px) rotate(-2deg); }
+            80% { transform: translateY(4px) rotate(2deg); }
+        }
+        .card-slot.lila-row-shaking,
+        .card-slot.row-shaking {
+            animation: rowShakeAnim 0.15s infinite ease-in-out !important;
+            z-index: 50 !important;
+        }
+        .card-slot.lila-row-shaking .card-face {
+            box-shadow: 0 0 25px rgba(155, 89, 182, 0.8);
+            border: 2px solid #9b59b6 !important;
+        }
+        .card-slot.row-shaking .card-face {
+            box-shadow: 0 0 25px rgba(241, 196, 15, 0.8);
+            border: 3px solid #f1c40f !important;
+        }
+
+        /* --- MEHRFACHES DREHEN & AUFSTEIGEN --- */
+        .card-slot.epic-rising-smooth {
+            position: fixed !important;
+            top: 50% !important;
+            left: 50% !important;
+            width: 200px !important;
+            height: 305px !important;
+            transform: translate(-50%, -50%) scale(1.6) !important;
+            z-index: 999999 !important;
+            transition: all 3.2s cubic-bezier(0.25, 1, 0.5, 1) !important;
+        }
+        .card-slot.epic-rising-smooth .card-flipper {
+            transform: rotateY(900deg) !important;
+            transition: transform 3.2s cubic-bezier(0.25, 1, 0.5, 1) !important;
+        }
+        .card-slot.epic-rising-smooth .card-face {
+            box-shadow: 0 0 70px rgba(155, 89, 182, 1), 0 0 130px rgba(142, 68, 173, 0.9);
+            border: 3px solid #fff !important;
+        }
+        .card-slot.epic-rising-smooth.gold-glow .card-face {
+            box-shadow: 0 0 70px rgba(241, 196, 15, 1), 0 0 130px rgba(255, 215, 0, 0.9);
+            border: 4px solid #fff !important;
+        }
+
+        /* Sanftes Pulsieren in der Bildschirmmitte (für Gold) */
+        @keyframes centerBreathe {
+            0%, 100% { transform: translate(-50%, -50%) scale(1.6); }
+            50% { transform: translate(-50%, -50%) scale(1.75); }
+        }
+        .card-slot.epic-center-resting {
+            position: fixed !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) scale(1.6) !important;
+            width: 200px !important;
+            height: 305px !important;
+            z-index: 999999 !important;
+            animation: centerBreathe 3s ease-in-out infinite !important;
+        }
+        .card-slot.epic-center-resting .card-flipper {
+            transform: rotateY(180deg);
+        }
+
+        /* LILA: Nahtloses Drehen um die eigene Y-Achse */
+        @keyframes purpleAxisSway {
+            0%, 100% { transform: rotateY(180deg); }
+            25% { transform: rotateY(165deg); }
+            75% { transform: rotateY(195deg); }
+        }
+        .card-slot.epic-center-resting.lila-resting .card-flipper,
+        .card-slot.lila-side-showcase .card-flipper {
+            animation: purpleAxisSway 4s ease-in-out infinite !important;
+        }
+
+        .card-slot.epic-center-resting .card-face {
+            box-shadow: 0 0 70px rgba(155, 89, 182, 1), 0 0 130px rgba(142, 68, 173, 0.9);
+            border: 3px solid #fff !important;
+        }
+        .card-slot.epic-center-resting.gold-glow .card-face {
+            box-shadow: 0 0 70px rgba(241, 196, 15, 1), 0 0 130px rgba(255, 215, 0, 0.9);
+            border: 4px solid #fff !important;
+        }
+
+        /* SHOWCASE: GLEITEN ZUM RECHTEN RAND */
+        .card-slot.lila-side-showcase,
+        .card-slot.side-showcase {
+            position: fixed !important;
+            top: 50% !important;
+            left: calc(100vw - 260px) !important;
+            right: auto !important;
+            bottom: auto !important;
+            width: 170px !important;
+            height: 260px !important;
+            transform: translateY(-50%) scale(1.15) !important;
+            margin: 0 !important;
+            z-index: 999999 !important;
+            transition: all 1.8s cubic-bezier(0.25, 1, 0.5, 1) !important;
+            animation: none !important;
+        }
+        .card-slot.side-showcase .card-flipper {
+            transform: rotateY(180deg) !important;
+            animation: none !important;
+        }
+        .card-slot.lila-side-showcase .card-face {
+            box-shadow: 0 0 45px rgba(155, 89, 182, 0.9);
+            border: 2px solid #9b59b6 !important;
+        }
+        .card-slot.side-showcase .card-face {
+            box-shadow: 0 0 45px rgba(241, 196, 15, 0.9);
+            border: 2px solid #f1c40f !important;
+            animation: none !important;
+        }
+
+        /* Username Tags */
+        .trophy-user-tag {
+            display: none;
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.9);
+            font-weight: bold;
+            font-size: 13px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.8s ease-in-out;
+        }
+        .card-slot.side-showcase .trophy-user-tag,
+        .card-slot.lila-side-showcase .trophy-user-tag {
+            display: block;
+            opacity: 1;
+            color: #f1c40f;
+            border: 2px solid #f1c40f;
+            box-shadow: 0 0 15px rgba(241, 196, 15, 0.7);
+        }
+
+        /* Modernes Clean Dark-Glass Card Face */
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            border-radius: 12px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.7);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(18, 18, 18, 0.85);
+            backdrop-filter: blur(8px);
+            box-sizing: border-box;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .card-back {
+            background: #111;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+        }
+        .card-back img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 6px;
+        }
+
+        .card-front {
+            transform: rotateY(180deg);
+        }
+
+        .card-inner-front {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* SCHRIFT OBEN (15px) */
+        .rarity-header { 
+            font-size: 15px; 
+            margin-bottom: 4px; 
+            font-weight: bold; 
+            letter-spacing: 1.5px; 
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        /* SCHRIFT UNTEN (15px) */
+        .card-name { 
+            font-size: 15px; 
+            margin-top: 6px; 
+            color: #ffffff; 
+            font-weight: bold; 
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: center;
+            width: 100%;
+        }
+
+        .new-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #00ffcc;
+            color: #000;
+            font-weight: bold;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 8px;
+            box-shadow: 0 0 8px rgba(0,255,204,0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            z-index: 10;
+            animation: pulse-badge 1.5s infinite;
+        }
+
+        @keyframes pulse-badge {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .image-wrapper {
+            position: relative;
+            overflow: hidden;
+            border-radius: 6px;
+            width: 100%;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 6px;
+            display: block;
+        }
+
+        /* Wackeln/Sway nur für Blaue (Rare) Karten */
+        .image-wrapper.shiny-card {
+            animation: sway 3s ease-in-out infinite;
+        }
+        @keyframes sway {
+            0% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-4px) rotate(-1.5deg); }
+            75% { transform: translateY(-4px) rotate(1.5deg); }
+            100% { transform: translateY(0) rotate(0deg); }
+        }
+
+        .image-wrapper.shiny-card::after {
+            content: '';
+            position: absolute;
+            top: -150%; left: -150%; width: 300%; height: 300%;
+            background: linear-gradient(45deg, rgba(255,255,255,0) 45%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 55%);
+            transform: rotate(30deg);
+            animation: shine-sweep 2.8s infinite linear;
+            pointer-events: none;
+        }
+        @keyframes shine-sweep {
+            0% { transform: translateY(-100%) translateX(-100%) rotate(30deg); }
+            100% { transform: translateY(100%) translateX(100%) rotate(30deg); }
+        }
+
+        /* Gold Glitzer Effekt On Top */
+        .gold-glitzer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            border-radius: 6px;
+            background: 
+                radial-gradient(2px 2px at 20% 30%, #fff, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 40% 70%, #ffd700, rgba(0,0,0,0)),
+                radial-gradient(3px 3px at 70% 40%, #ffdf00, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 80% 80%, #fff, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 30% 20%, #ffaa00, rgba(0,0,0,0));
+            background-repeat: repeat;
+            animation: goldSparkleShimmer 1.5s infinite alternate ease-in-out;
+            z-index: 15;
+        }
+        @keyframes goldSparkleShimmer {
+            0% { opacity: 0.4; filter: brightness(1); }
+            100% { opacity: 1; filter: brightness(1.6) drop-shadow(0 0 8px gold); }
+        }
+
+        .text-Common { color: #aaaaaa; }
+        .text-Uncommon { color: #2ecc71; }
+        .text-Rare { color: #3498db; }
+        .text-Super-Rare { color: #9b59b6; text-shadow: 0 0 6px rgba(155,89,182,0.7); }
+        .text-Ultra-Rare { color: #f1c40f; text-shadow: 0 0 8px rgba(241,196,15,0.8); }
+        .text-Secret-Rare { display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- Wer hat gekauft Anzeige -->
+    <div class="booster-title" id="boosterTitle"></div>
+
+    <div class="booster-container" id="boosterContainer">
+        <div class="booster-half booster-top">
+            <img src="tcg booster.png" alt="Booster Top">
+        </div>
+        <div class="booster-half booster-bottom">
+            <img src="tcg booster.png" alt="Booster Bottom">
+        </div>
+    </div>
+
+    <div class="pack-container" id="packResults"></div>
+
+    <script src="cards.js"></script>
+    <script>
+        // Sitejet / CDN Links für alle 100 Karten (synchron zum Online-Album)
+        const cardImages = {
+            1: "https://inter-cdn.com/images/0/27780474/1-p502PcHz9SQ7ySmU7RPBFw.png",
+            2: "https://inter-cdn.com/images/0/27780500/2-Kueobd4GioNPosgIxS8X4Q.png",
+            3: "https://inter-cdn.com/images/0/27780523/3-pGB3qwbBNHQcfvhBuvRd1w.png",
+            4: "https://inter-cdn.com/images/0/27780546/4-RfYMZ9Wd2gBxDbZQwSGNKQ.png",
+            5: "https://inter-cdn.com/images/0/27780580/5-xtG-jXrEQVuSrjusqHmWRA.png",
+            6: "https://inter-cdn.com/images/0/27780603/6-8Wx8IVId2rpARn1y-zEXtg.png",
+            7: "https://inter-cdn.com/images/0/27780624/7-ciseXMqmDFYIcWQ_6UP5Cg.png",
+            8: "https://inter-cdn.com/images/0/27780645/8-j7mrH4RqD9xT4Wlwa2yjUw.png",
+            9: "https://inter-cdn.com/images/0/27780670/9-j_MgSn-oyZZVf-LFDo-C7Q.png",
+            10: "https://inter-cdn.com/images/0/27780475/10-ncfi8bBqepnK4dVoCq0DKA.png",
+            11: "https://inter-cdn.com/images/0/27780480/11-Qb1G6v6yvggkybGwz_8-cA.png",
+            12: "https://inter-cdn.com/images/0/27780481/12-hP_6Ptv8-nbQJnisTsej2g.png",
+            13: "https://inter-cdn.com/images/0/27780483/13-M6mCXYejy6-cULHgOpZ6kw.png",
+            14: "https://inter-cdn.com/images/0/27780486/14-FrjHjmIIraCwcoAtPNF7qA.png",
+            15: "https://inter-cdn.com/images/0/27780487/15-0ymCRAJAJZQxUb6FtirmNA.png",
+            16: "https://inter-cdn.com/images/0/27780488/16--2rVXfprVt0wJFuEaOMqpQ.png",
+            17: "https://inter-cdn.com/images/0/27780489/17-PmPaMLrkusOVUPyqlwQksA.png",
+            18: "https://inter-cdn.com/images/0/27780495/18-0cHW1QzLoJxVgcRlx44y4A.png",
+            19: "https://inter-cdn.com/images/0/27780498/19-30ks1zxf6vEQasV3BbMZmQ.png",
+            20: "https://inter-cdn.com/images/0/27780501/20-ADqXJtgq9KbUPRmaKWPE9w.png",
+            21: "https://inter-cdn.com/images/0/27780503/21-9i4_8c6C_rVAgOo40yv2Qg.png",
+            22: "https://inter-cdn.com/images/0/27780505/22-kRKk-ZMnS6BnHr4oufoPQQ.png",
+            23: "https://inter-cdn.com/images/0/27780507/23-qTeerpkfgKYncGxFsRFUKw.png",
+            24: "https://inter-cdn.com/images/0/27780510/24-9-0cB2qI67c0fIDdtaOYfw.png",
+            25: "https://inter-cdn.com/images/0/27780513/25-zxtIHZkgG5VbZVQxIeSnIg.png",
+            26: "https://inter-cdn.com/images/0/27780515/26-37t08cyN5fLoVDLVGS3WlQ.png",
+            27: "https://inter-cdn.com/images/0/27780516/27-4bvyTZRiYq3HBiHbQjWkHw.png",
+            28: "https://inter-cdn.com/images/0/27780519/28-LzK2Oxr914lPR8joudUHlw.png",
+            29: "https://inter-cdn.com/images/0/27780522/29-vYmRGyeRvXuAO8oFfFtOqQ.png",
+            30: "https://inter-cdn.com/images/0/27780525/30-8d8sOfQy9pRyhSOnpVog2A.png",
+            31: "https://inter-cdn.com/images/0/27780526/31-au_T9IvvouJ4xeuph8FBDw.png",
+            32: "https://inter-cdn.com/images/0/27780528/32-VJwQEkgzU4QPr2ejP-oF0Q.png",
+            33: "https://inter-cdn.com/images/0/27780530/33-kJA_ece4ET8eHONsVTEVzA.png",
+            34: "https://inter-cdn.com/images/0/27780531/34-hoPbDPV4mOewvsfta5gJ8Q.png",
+            35: "https://inter-cdn.com/images/0/27780532/35-zJI2hUc3hzzYDq6uh5ms8w.png",
+            36: "https://inter-cdn.com/images/0/27780534/36-pvKQ_ZceIVGXrymNvbaPhA.png",
+            37: "https://inter-cdn.com/images/0/27780537/37-8aao5oTro0y1953DOISA9Q.png",
+            38: "https://inter-cdn.com/images/0/27780540/38-t5c5ea6cFlY-fC-iFwaI0A.png",
+            39: "https://inter-cdn.com/images/0/27780543/39-drYhonZBcV8PjgIAfPKnQA.png",
+            40: "https://inter-cdn.com/images/0/27780549/40-dFzEFzfmMsVrxvjJ1M93dQ.png",
+            41: "https://inter-cdn.com/images/0/27780552/41-KnuKWT-_L5WFb6vO2B1EkA.png",
+            42: "https://inter-cdn.com/images/0/27780558/42-qixmUx5W2LJ8Twgn0VLuNw.png",
+            43: "https://inter-cdn.com/images/0/27780560/43-XTYho7oSZjPoghRoA_HKcw.png",
+            44: "https://inter-cdn.com/images/0/27780563/44-OpF32anjIoGinA1udVeMvw.png",
+            45: "https://inter-cdn.com/images/0/27780568/45-H_SoEXlKeVWzzQ0vtDxQ5w.png",
+            46: "https://inter-cdn.com/images/0/27780571/46-Xgj_QBSirPscnPr1YKN0aQ.png",
+            47: "https://inter-cdn.com/images/0/27780574/47-vm6qsPeDJPhz48mdtGWSww.png",
+            48: "https://inter-cdn.com/images/0/27780577/48-Oi7n_PvF4NJzPbHJGUXi5Q.png",
+            49: "https://inter-cdn.com/images/0/27780579/49-3j1-RRFJoZzGhz-1sMcl3Q.png",
+            50: "https://inter-cdn.com/images/0/27780582/50-hUDTrmMgRKt8fh8Q6Dx4Sw.png",
+            51: "https://inter-cdn.com/images/0/27780583/51-UP8TUdDxxvfpsB5d6LqUyg.png",
+            52: "https://inter-cdn.com/images/0/27780586/52-vyC6GsHwQFhGZWaFUP-VTA.png",
+            53: "https://inter-cdn.com/images/0/27780588/53-FqEA9yNWG39FreCF8N10CA.png",
+            54: "https://inter-cdn.com/images/0/27780589/54-_WNTb1XpsUQJpj0J-m0dZg.png",
+            55: "https://inter-cdn.com/images/0/27780591/55-qG8zLFyiAQdDL03UYpvGZg.png",
+            56: "https://inter-cdn.com/images/0/27780594/56-Q2lrWt0CmZNAb4WeZ02Q7g.png",
+            57: "https://inter-cdn.com/images/0/27780597/57-GOwaIb_2J9CeZ2FRtSQ4FQ.png",
+            58: "https://inter-cdn.com/images/0/27780598/58-WqXiOOJfI7UqZnMYBYLX9Q.png",
+            59: "https://inter-cdn.com/images/0/27780600/59-OFUbEcjvJFf8dgn8KZ0IBw.png",
+            60: "https://inter-cdn.com/images/0/27780606/60-S-z0jt2zOywMhCxvWIs34A.png",
+            61: "https://inter-cdn.com/images/0/27780607/61-YSMN0Ewb142u-tDOdjAXoA.png",
+            62: "https://inter-cdn.com/images/0/27780608/62-wkTbhCNi5lLIW1y_XerYDw.png",
+            63: "https://inter-cdn.com/images/0/27780609/63-WDV_xY3Wt5YpKwjcVMaLSg.png",
+            64: "https://inter-cdn.com/images/0/27780610/64-DXpjU60ZQsGBpCk9l-YK1w.png",
+            65: "https://inter-cdn.com/images/0/27780613/65-buaX8cdmwQE2Wl7GAQ0zKQ.png",
+            66: "https://inter-cdn.com/images/0/27780616/66-W1vHL6dMeF9A5D1VMXGyqg.png",
+            67: "https://inter-cdn.com/images/0/27780619/67-_xCC0-8H8MLDJsL_WI1VtA.png",
+            68: "https://inter-cdn.com/images/0/27780621/68-2MDg4kTmwdQRT8j_cnceDg.png",
+            69: "https://inter-cdn.com/images/0/27780622/69-zG7cd_AeJKi0HDRdyB-puQ.png",
+            70: "https://inter-cdn.com/images/0/27780625/70-oyTlSQLBWYzKFk5GdIDQ6Q.png",
+            71: "https://inter-cdn.com/images/0/27780627/71-RLnm3T5WM39XJScE1vyKKg.png",
+            72: "https://inter-cdn.com/images/0/27780630/72-RtHS0k1k7w7rQcby0OxvRQ.png",
+            73: "https://inter-cdn.com/images/0/27780631/73-nCLw1mSp_2REi8eK4n2xGw.png",
+            74: "https://inter-cdn.com/images/0/27780634/74-H4NhSpBy-gOsp0uAt1gn4A.png",
+            75: "https://inter-cdn.com/images/0/27780637/75-Z3tK0EVyuytwbcTj1kE77Q.png",
+            76: "https://inter-cdn.com/images/0/27780639/76-fU1Cc0HNjjU_sqp_gOY1uQ.png",
+            77: "https://inter-cdn.com/images/0/27780641/77-1xG7gNBb209flh7YVPjzBg.png",
+            78: "https://inter-cdn.com/images/0/27780642/78-dTW7wkZRihqjFj2v7QIlQw.png",
+            79: "https://inter-cdn.com/images/0/27780643/79-w9IYUdjNM2zYw7mpG6izbQ.png",
+            80: "https://inter-cdn.com/images/0/27780646/80-ViC5Mt6gSGDWozxSQ1Ce5g.png",
+            81: "https://inter-cdn.com/images/0/27780647/81-ofPRI8IawK59lLiu4xbwJg.png",
+            82: "https://inter-cdn.com/images/0/27780649/82-z_QS2wWa7q0rH03ng3a_Og.png",
+            83: "https://inter-cdn.com/images/0/27780651/83-c6tiHVb5Ib73PyEOXHWiaQ.png",
+            84: "https://inter-cdn.com/images/0/27780654/84-uKtSKMdQniUCNzRc_NDTJw.png",
+            85: "https://inter-cdn.com/images/0/27780655/85-Jmkj9dx2sUtPPHTuenmkxQ.png",
+            86: "https://inter-cdn.com/images/0/27780657/86-fOENfhdXwRDZUiuwuG9I2g.png",
+            87: "https://inter-cdn.com/images/0/27780658/87-8GSinvoyJtA9Tp2A6pM8lQ.png",
+            88: "https://inter-cdn.com/images/0/27780667/88-c7-44Scb2deMbaC1qiUgCg.png",
+            89: "https://inter-cdn.com/images/0/27780669/89-lR6GgoSzjcHUD26p_BByow.png",
+            90: "https://inter-cdn.com/images/0/27780672/90-yHwnmrCrxN0FpMv8AXnuPA.png",
+            91: "https://inter-cdn.com/images/0/27780675/91-4LxDKVOA83reRc4AAsEouA.png",
+            92: "https://inter-cdn.com/images/0/27780679/92-9MEr4APIXUcF-MMBuiRQ4g.png",
+            93: "https://inter-cdn.com/images/0/27780681/93-hApKOfgz4ko9w-_QcoWMfA.png",
+            94: "https://inter-cdn.com/images/0/27780682/94-RAygh1A3uvrLL7t77DVNWA.png",
+            95: "https://inter-cdn.com/images/0/27780685/95-O24hvjkvbra5SuzpMksCfQ.png",
+            96: "https://inter-cdn.com/images/0/27780687/96-k93C-1lblsDxy56CB1Lbog.png",
+            97: "https://inter-cdn.com/images/0/27780690/97-0Nuid4dkAFAyVB7IMLxeaA.png",
+            98: "https://inter-cdn.com/images/0/27780693/98-S8IdE2sqLCVMnqHRz5O9cA.png",
+            99: "https://inter-cdn.com/images/0/27780696/99-WUw3b99qfPnEFsHKRdQZ7Q.png",
+            100: "https://inter-cdn.com/images/0/27780477/100-7c8SbzC7cnsrcfkBYT9A_A.png"
+        };
+
+        function playSound(id, vol = 0.5) {
+            try {
+                const sound = document.getElementById(id);
+                if (sound) {
+                    sound.volume = vol;
+                    sound.currentTime = 0;
+                    sound.play().catch(e => {});
+                }
+            } catch(err) {}
+        }
+
+        let epicFadeTimer = null;
+        let epicIntervalTimer = null;
+
+        function playEpicSound(vol = 0.3) {
+            try {
+                const sound = document.getElementById('snd-epic');
+                if (sound) {
+                    clearTimeout(epicFadeTimer);
+                    clearInterval(epicIntervalTimer);
+
+                    sound.volume = vol;
+                    sound.currentTime = 0;
+                    sound.play().catch(e => {});
+
+                    epicFadeTimer = setTimeout(() => {
+                        let currentVol = sound.volume;
+                        let step = currentVol / 20;
+                        epicIntervalTimer = setInterval(() => {
+                            if (sound.volume > step) {
+                                sound.volume -= step;
+                            } else {
+                                sound.volume = 0;
+                                clearInterval(epicIntervalTimer);
+                            }
+                        }, 200);
+                    }, 7000);
+                }
+            } catch(err) {}
+        }
+
+        async function startOpening() {
+            playSound('snd-buy', 0.6);
+
+            let username = "Viewer";
+            try {
+                const res = await fetch('user.txt?' + Date.now());
+                if (res.ok) {
+                    let rawText = (await res.text()).trim();
+                    username = rawText.split('-')[0] || "Viewer";
+                }
+            } catch(e) {}
+
+            const titleEl = document.getElementById('boosterTitle');
+            if (titleEl) {
+                titleEl.innerHTML = `${username} hat ein Booster gekauft!`;
+                titleEl.classList.add('active');
+            }
+
+            const collKey = `tcg_collection_${username}`;
+            const packKey = `tcg_packs_${username}`;
+
+            let collection = JSON.parse(localStorage.getItem(collKey) === null ? "[]" : localStorage.getItem(collKey));
+            let packsOpened = parseInt(localStorage.getItem(packKey) === null ? "0" : localStorage.getItem(packKey)) + 1;
+            localStorage.setItem(packKey, packsOpened);
+
+            const pack = openBoosterPack();
+            let newCardsCount = 0;
+
+            const cardNamesList = pack.map(c => `${c.cardName} (${c.rarity})`).join(', ');
+
+            pack.forEach(card => {
+                if (!collection.includes(card.cardId)) {
+                    collection.push(card.cardId);
+                    newCardsCount++;
+                    card.isNew = true;
+                } else {
+                    card.isNew = false;
+                }
+            });
+
+            localStorage.setItem(collKey, JSON.stringify(collection));
+            const totalUnique = collection.length;
+
+            setTimeout(() => {
+                sendToStreamerBot(username, newCardsCount, totalUnique, packsOpened, cardNamesList, collection);
+            }, 7000);
+
+            const container = document.getElementById('boosterContainer');
+            const containerResults = document.getElementById('packResults');
+            
+            if (!container || !containerResults) return;
+
+            containerResults.innerHTML = '';
+            container.classList.remove('ripped', 'hiding');
+            container.classList.add('active', 'shake');
+
+            setTimeout(() => {
+                container.classList.remove('shake');
+                container.classList.add('ripped');
+
+                playSound('snd-rip', 0.6);
+
+                if (titleEl) titleEl.classList.remove('active');
+
+                setTimeout(() => {
+                    const cardElements = [];
+                    let specialCardElement = null;
+                    let hasSpecialCard = false;
+                    let specialType = null;
+
+                    pack.forEach((card, index) => {
+                        const cardDiv = document.createElement('div');
+                        
+                        const raritySlug = card.rarity.replace(' ', '-');
+                        let cardClasses = `card-slot slot-${raritySlug}`;
+                        cardDiv.className = cardClasses;
+                        
+                        let imageWrapperClass = 'image-wrapper';
+                        if (card.rarity === 'Rare') {
+                            imageWrapperClass = 'image-wrapper shiny-card';
+                        }
+                        
+                        // Hier wird jetzt automatisch der korrekte CDN-Link geholt!
+                        let imagePath = cardImages[card.cardId];
+                        if (!imagePath || imagePath.trim() === "") {
+                            imagePath = `https://placehold.co/150x200/222/FFF?text=Card+${card.cardId}`;
+                        }
+
+                        const textClass = `text-${raritySlug}`;
+                        let newBadgeHtml = card.isNew ? `<div class="new-badge">NEU!</div>` : '';
+
+                        cardDiv.innerHTML = `
+                            <div class="card-flipper">
+                                <div class="card-face card-back">
+                                    <img src="kartenruecken.png" alt="Card Back" onerror="this.src='placeholder.png'">
+                                </div>
+                                <div class="card-face card-front">
+                                    <div class="card-inner-front">
+                                        ${newBadgeHtml}
+                                        <div class="rarity-header ${textClass}">${card.rarity}</div>
+                                        <div class="${imageWrapperClass}">
+                                            <img src="${imagePath}" alt="Karte ${card.cardId}" onerror="this.src='https://placehold.co/150x200/222/FFF?text=Error'">
+                                        </div>
+                                        <div class="card-name">${card.cardName}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="trophy-user-tag">👑 ${username}</div>
+                        `;
+                        containerResults.appendChild(cardDiv);
+                        cardElements.push(cardDiv);
+
+                        if (card.rarity === 'Ultra Rare' || card.rarity === 'Secret Rare') {
+                            specialCardElement = cardDiv;
+                            hasSpecialCard = true;
+                            specialType = 'gold';
+                        } else if (card.rarity === 'Super Rare' && !hasSpecialCard) {
+                            specialCardElement = cardDiv;
+                            hasSpecialCard = true;
+                            specialType = 'lila';
+                        }
+
+                        setTimeout(() => {
+                            cardDiv.classList.add('revealed');
+                            playSound('snd-rise', 0.4);
+                        }, 200 + (index * 400));
+
+                        setTimeout(() => {
+                            if (cardDiv === specialCardElement) {
+                                playEpicSound(0.3);
+                                
+                                const shakeClass = (specialType === 'lila') ? 'lila-row-shaking' : 'row-shaking';
+                                cardDiv.classList.add(shakeClass);
+
+                                setTimeout(() => {
+                                    cardDiv.classList.remove(shakeClass);
+
+                                    const rect = cardDiv.getBoundingClientRect();
+                                    cardDiv.style.position = 'fixed';
+                                    cardDiv.style.top = rect.top + 'px';
+                                    cardDiv.style.left = rect.left + 'px';
+                                    cardDiv.style.width = rect.width + 'px';
+                                    cardDiv.style.height = rect.height + 'px';
+                                    cardDiv.style.zIndex = '999999';
+                                    document.body.appendChild(cardDiv);
+                                    cardDiv.getBoundingClientRect();
+
+                                    cardDiv.classList.add('epic-rising-smooth');
+                                    if (specialType === 'gold') {
+                                        cardDiv.classList.add('gold-glow');
+                                    }
+                                    
+                                    setTimeout(() => {
+                                        cardDiv.classList.remove('epic-rising-smooth');
+                                        cardDiv.classList.add('epic-center-resting');
+
+                                        const imgWrapper = specialCardElement.querySelector('.image-wrapper');
+                                        if (specialType === 'lila') {
+                                            cardDiv.classList.add('lila-resting');
+                                        } else if (specialType === 'gold' && imgWrapper) {
+                                            const glitzerEl = document.createElement('div');
+                                            glitzerEl.className = 'gold-glitzer';
+                                            imgWrapper.appendChild(glitzerEl);
+                                        }
+                                    }, 3200);
+                                }, 1500);
+
+                            } else {
+                                cardDiv.classList.add('flipped');
+                                playSound('snd-flip', 0.3);
+                            }
+                        }, 1800 + (index * 400));
+                    });
+
+                    if (hasSpecialCard && specialCardElement) {
+                        setTimeout(() => {
+                            cardElements.forEach(card => {
+                                if (card !== specialCardElement) {
+                                    card.classList.add('hiding');
+                                }
+                            });
+                            
+                            specialCardElement.classList.remove('epic-center-resting', 'lila-resting', 'gold-glow');
+
+                            if (specialType === 'gold') {
+                                specialCardElement.classList.add('side-showcase');
+                            } else {
+                                specialCardElement.classList.add('lila-side-showcase');
+                            }
+                        }, 10500);
+
+                        setTimeout(() => {
+                            container.classList.add('hiding');
+                            specialCardElement.classList.add('hiding');
+                            setTimeout(() => {
+                                containerResults.innerHTML = '';
+                                container.classList.remove('active', 'hiding', 'ripped');
+                                if (specialCardElement.parentNode === document.body) {
+                                    document.body.removeChild(specialCardElement);
+                                }
+                            }, 800);
+                        }, 25500);
+
+                    } else {
+                        setTimeout(() => {
+                            container.classList.add('hiding');
+                            cardElements.forEach(card => {
+                                card.classList.add('hiding');
+                            });
+                            setTimeout(() => {
+                                containerResults.innerHTML = '';
+                                container.classList.remove('active', 'hiding', 'ripped');
+                            }, 800);
+                        }, 12500);
+                    }
+
+                }, 600);
+
+            }, 1200);
+        }
+
+        function sendToStreamerBot(user, newCount, total, packNum, cardsList, collection) {
+            try {
+                const wsSend = new WebSocket('ws://localhost:8080/');
+                wsSend.onopen = () => {
+                    const payload = {
+                        request: "DoAction",
+                        id: "tcg_req_" + Date.now(),
+                        action: { name: "TCG Save Collection" },
+                        args: {
+                            user: user,
+                            newCards: newCount,
+                            totalCards: total,
+                            packNumber: packNum,
+                            cardsList: cardsList,
+                            collectionJson: JSON.stringify(collection) // Die Karten-Liste als Text verpackt
+                        }
+                    };
+                    wsSend.send(JSON.stringify(payload));
+                    wsSend.close();
+                };
+            } catch(e) {}
+        }
+
+        let lastFileContent = "";
+        
+        setInterval(async () => {
+            try {
+                const res = await fetch('user.txt?' + Date.now());
+                if (res.ok) {
+                    let content = (await res.text()).trim();
+                    if (content && content !== lastFileContent) {
+                        if (lastFileContent !== "") {
+                            startOpening();
+                        }
+                        lastFileContent = content;
+                    }
+                }
+            } catch(e) {}
+        }, 1000);
+    </script>
+
+    <!-- Feste Audio-Tags für OBS -->
+    <audio id="snd-buy" src="buy.mp3" preload="auto"></audio>
+    <audio id="snd-rip" src="rip.mp3" preload="auto"></audio>
+    <audio id="snd-rise" src="rise.mp3" preload="auto"></audio>
+    <audio id="snd-flip" src="flip.mp3" preload="auto"></audio>
+    <audio id="snd-epic" src="epic.mp3" preload="auto"></audio>
+</body>
+</html>

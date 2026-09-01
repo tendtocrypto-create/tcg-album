@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TCG !rip Widget</title>
+    <script src="https://cdn.jsdelivr.net/npm/comfy.js@latest/dist/comfy.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+    <style>
+        body { margin:0; background:transparent; font-family:Arial, sans-serif; overflow:hidden; color: white; }
+        #container { width: 820px; margin: 20px auto; text-align:center; }
+        #card { width: 300px; height: 420px; margin: 20px auto; perspective: 1200px; }
+        .card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.9s cubic-bezier(0.25, 0.46, 0.45, 0.94); transform-style: preserve-3d; }
+        .card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 16px; box-shadow: 0 15px 30px rgba(0,0,0,0.7); }
+        .card-front { background: #fff; }
+        .card-back { background: linear-gradient(135deg, #1e3a8a, #3b0764); color: #ffd700; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; text-shadow: 0 0 10px #fff; transform: rotateY(180deg); border: 8px solid #ffd700; }
+        #recent { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 25px; }
+        .mini-card { width: 72px; height: 100px; border-radius: 8px; overflow: hidden; box-shadow: 0 5px 10px rgba(0,0,0,0.6); transition: transform 0.2s; }
+        .mini-card:hover { transform: scale(1.1); }
+        .holo { box-shadow: 0 0 25px #00ffff, 0 0 35px #ffd700 !important; }
+        .rare { box-shadow: 0 0 20px #c026d3 !important; }
+        #total { color:#ffcb05; font-size:22px; margin-top:15px; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1 style="color:#ffcb05; text-shadow: 3px 3px 0 #3b4cca; font-size: 42px; margin-bottom: 10px;">!rip TCG</h1>
+        
+        <div id="card">
+            <div class="card-inner" id="cardInner">
+                <div class="card-back" id="cardBack">POKÉMON TCG</div>
+                <div class="card-front" id="cardFront">
+                    <img id="cardImage" src="https://via.placeholder.com/300x420/1a1a2e/ffd700?text=Ready+to+Rip" 
+                         style="width:100%; height:100%; object-fit:contain; border-radius:16px;">
+                </div>
+            </div>
+        </div>
+
+        <div id="recent"></div>
+        <div id="collections" style="margin-top: 25px;"></div>
+        
+        <div id="total">
+            Total Rips This Stream: <span id="count">0</span>
+        </div>
+    </div>
+
+    <script src="cards.js"></script>
+    <script>
+        // ====================== WEIGHTED RANDOM (Etsy balanced) ======================
+        function getWeightedRandomCard() {
+            const weights = cards.map(card => {
+                const r = (card.rarity || "").toLowerCase();
+                if (r.includes("hyper") || r.includes("mega") || r.includes("special illustration")) return 3;
+                if (r.includes("vmax") || r.includes("full art")) return 4;
+                if (r.includes("ultra") || r.includes("double rare")) return 8;
+                if (r.includes("rare")) return 15;
+                return 25; // Common / Uncommon get highest weight
+            });
+
+            const totalWeight = weights.reduce((a, b) => a + b, 0);
+            let random = Math.random() * totalWeight;
+
+            for (let i = 0; i < cards.length; i++) {
+                random -= weights[i];
+                if (random <= 0) return cards[i];
+            }
+            return cards[cards.length - 1];
+        }
+
+        // Shuffle once for extra randomness
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+        if (typeof cards !== 'undefined') shuffleArray(cards);
+
+        let totalRips = 0;
+        const recentCards = [];
+        const userCollections = new Map();
+
+        function normalizeCard(card) {
+            return {
+                images: { small: card.image, large: card.image },
+                rarity: card.rarity || "Common"
+            };
+        }
+
+        function triggerConfetti() {
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+            setTimeout(() => confetti({ particleCount: 100, angle: 60, spread: 55, origin: { x: 0.1 } }), 250);
+        }
+
+        function renderRecent() {
+            const container = document.getElementById('recent');
+            container.innerHTML = recentCards.map(card => `
+                <div class="mini-card">
+                    <img src="${card.images.small}" style="width:100%; height:100%; object-fit:cover;">
+                </div>
+            `).join('');
+        }
+
+        function renderCollections() {
+            let html = '<h3 style="color:#ffcb05; margin:15px 0 8px;">Live Collections</h3>';
+            html += '<div style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center; max-height:220px; overflow-y:auto; padding:8px; background:rgba(0,0,0,0.4); border-radius:12px;">';
+            
+            if (userCollections.size === 0) {
+                html += '<p style="color:#aaa;">No cards ripped yet...</p>';
+            } else {
+                Array.from(userCollections.entries())
+                    .sort((a, b) => b[1].length - a[1].length)
+                    .slice(0, 8)
+                    .forEach(([user, list]) => {
+                        const latest = list[list.length - 1];
+                        html += `
+                            <div style="background:rgba(255,255,255,0.1); padding:8px; border-radius:8px; min-width:140px;">
+                                <strong style="color:#ffcb05;">@${user}</strong><br>
+                                <small>${list.length} cards</small><br>
+                                <img src="${latest.images.small}" style="width:60px; height:84px; border-radius:4px; margin-top:4px;">
+                            </div>`;
+                    });
+            }
+            html += '</div>';
+            document.getElementById('collections').innerHTML = html;
+        }
+
+        function showCard(rawCard, user) {
+            const card = normalizeCard(rawCard);
+            totalRips++;
+            document.getElementById('count').textContent = totalRips;
+
+            if (!userCollections.has(user)) userCollections.set(user, []);
+            userCollections.get(user).push(card);
+
+            renderCollections();
+
+            const inner = document.getElementById('cardInner');
+            inner.style.transform = 'rotateY(180deg)';
+
+            setTimeout(() => {
+                const img = document.getElementById('cardImage');
+                img.src = card.images.large;
+
+                const front = document.getElementById('cardFront');
+                front.className = 'card-front';
+
+                const rarityLower = (card.rarity || '').toLowerCase();
+                if (rarityLower.includes('ultra') || rarityLower.includes('ex') || rarityLower.includes('mega') || rarityLower.includes('hyper') || rarityLower.includes('vmax')) {
+                    front.classList.add('holo');
+                    triggerConfetti();
+                } else if (rarityLower.includes('rare')) {
+                    front.classList.add('rare');
+                }
+
+                recentCards.unshift(card);
+                if (recentCards.length > 8) recentCards.pop();
+                renderRecent();
+
+                setTimeout(() => {
+                    inner.style.transform = 'rotateY(0deg)';
+                }, 900);
+            }, 450);
+        }
+
+        // ====================== COMFYJS ======================
+        ComfyJS.onCommand = (user, command) => {
+            if (command.toLowerCase() === 'rip') {
+                if (!cards || cards.length === 0) {
+                    ComfyJS.Say("Cards still loading...");
+                    return;
+                }
+                const randomCard = getWeightedRandomCard();
+                showCard(randomCard, user);
+
+                const emoji = /ultra|ex|mega|vmax|hyper/i.test(randomCard.rarity) ? '🌟' : '✨';
+                ComfyJS.Say(`${emoji} @${user} ripped a card!`);
+            }
+        };
+
+        ComfyJS.Init("tend98");   // ← CHANGE TO YOUR CHANNEL
+
+        window.onload = () => {
+            renderCollections();
+        };
+    </script>
+</body>
+</html>
