@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TCG Community Sammelalbum</title>
+    <title>TCG Kartensammlung - Album</title>
     <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
     <style>
         body {
@@ -11,49 +11,50 @@
             background: #121212;
             color: white;
             margin: 0;
-            padding: 30px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            padding: 20px;
+            text-align: center;
         }
 
         h1 {
             font-family: 'Russo One', sans-serif;
-            color: #d296f5;
+            color: #f1c40f;
+            text-shadow: 0 0 15px rgba(241, 196, 15, 0.4);
             margin-bottom: 10px;
-            text-shadow: 0 0 15px rgba(155, 89, 182, 0.4);
         }
 
-        /* Suchleiste / Namens-Eingabe */
-        .search-box {
-            background: rgba(25, 25, 25, 0.9);
+        .input-section {
+            background: #1e1e1e;
             padding: 20px;
             border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: inline-block;
             margin-bottom: 30px;
-            display: flex;
-            gap: 15px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-            backdrop-filter: blur(8px);
+            border: 2px solid #333;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         }
 
-        input {
+        input[type="text"] {
+            width: 400px;
             padding: 10px 15px;
             font-size: 16px;
             border-radius: 6px;
-            border: 1px solid #444;
+            border: 2px solid #555;
             background: #111;
             color: white;
             outline: none;
-            width: 220px;
+            margin-right: 10px;
+        }
+
+        input[type="text"]:focus {
+            border-color: #f1c40f;
         }
 
         button {
             padding: 10px 20px;
             font-size: 16px;
             font-weight: bold;
-            background: #9b59b6;
-            color: white;
+            font-family: 'Russo One', sans-serif;
+            background: #f1c40f;
+            color: #000;
             border: none;
             border-radius: 6px;
             cursor: pointer;
@@ -61,269 +62,225 @@
         }
 
         button:hover {
-            background: #8e44ad;
+            background: #d4ac0d;
         }
 
-        #status-msg {
-            margin-bottom: 25px;
-            font-size: 14px;
-            color: #aaa;
+        #userWelcome {
+            font-size: 18px;
+            color: #00ffcc;
+            margin-top: 15px;
+            font-weight: bold;
+            font-family: 'Russo One', sans-serif;
         }
 
-        /* Das Karten-Grid (Clean & Modern) */
-        .album-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 20px;
-            width: 100%;
+        .collection-grid {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
             max-width: 1200px;
+            margin: 0 auto;
         }
 
-        .album-card {
-            background: rgba(18, 18, 18, 0.85);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+        /* Kartenelement */
+        .card-slot {
+            width: 170px;
+            height: 285px;
+            background: #1e1e1e;
             border-radius: 12px;
-            padding: 10px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            border: 3px solid #333;
+            box-sizing: border-box;
+            padding: 6px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            text-align: center;
-            box-sizing: border-box;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-            transition: transform 0.2s, box-shadow 0.2s;
+            justify-content: space-between;
         }
 
-        .album-card img {
+        .card-inner {
             width: 100%;
-            height: 200px;
-            object-fit: contain;
-            border-radius: 6px;
-            margin-bottom: 8px;
-            /* Nicht freigeschaltete Karten werden dunkel und schwarz-weiß dargestellt */
-            filter: grayscale(100%) brightness(0.3);
-            transition: filter 0.3s;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
-        /* Wenn die Karte gesammelt wurde */
-        .album-card.unlocked img {
-            filter: none;
-        }
-
-        .album-card.unlocked {
-            border-color: #2ecc71;
-            box-shadow: 0 0 15px rgba(46, 204, 113, 0.25);
-        }
-
-        .card-number {
-            font-size: 11px;
-            color: #777;
-            margin-bottom: 4px;
+        .rarity-header {
+            font-size: 13px;
             font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        .image-wrapper {
+            position: relative;
+            overflow: hidden;
+            border-radius: 6px;
+            width: 100%;
+            height: 210px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #111;
+        }
+
+        .image-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
         }
 
         .card-name {
-            font-size: 12px;
+            font-size: 13px;
+            color: #ffffff;
             font-weight: bold;
+            letter-spacing: 0.5px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            text-align: center;
             width: 100%;
-            color: #fff;
+        }
+
+        /* Gesperrte Karte */
+        .card-slot.locked {
+            opacity: 0.75;
+        }
+        .card-slot.locked .image-wrapper img {
+            filter: brightness(0.6);
+        }
+
+        /* Seltenheits-Rahmen */
+        .slot-Common { border-color: #888888; }
+        .slot-Uncommon { border-color: #2ecc71; box-shadow: 0 0 10px rgba(46,204,113,0.3); }
+        .slot-Rare { border-color: #3498db; box-shadow: 0 0 10px rgba(52,152,219,0.3); }
+        .slot-Super-Rare { border-color: #9b59b6; box-shadow: 0 0 14px rgba(155,89,182,0.6); }
+        .slot-Ultra-Rare { border-color: #f1c40f; box-shadow: 0 0 20px rgba(241,196,15,0.8); }
+
+        .text-Common { color: #aaaaaa; }
+        .text-Uncommon { color: #2ecc71; }
+        .text-Rare { color: #3498db; }
+        .text-Super-Rare { color: #9b59b6; }
+        .text-Ultra-Rare { color: #f1c40f; }
+
+        .info-text {
+            color: #888;
+            margin-top: 20px;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
 
-    <h1>TCG Sammelalbum</h1>
-    <div id="status-msg">Gib deinen Twitch-Namen ein, um deine Sammlung zu laden.</div>
-
-    <div class="search-box">
-        <input type="text" id="usernameInput" placeholder="Twitch Name..." onkeydown="if(event.key === 'Enter') loadCollection()">
-        <button onclick="loadCollection()">Album laden</button>
+    <h1>Meine TCG Kartensammlung</h1>
+    
+    <div class="input-section">
+        <p style="margin-top:0; font-size: 14px; color:#ccc;">Tippe hier die komplette Zeile aus dem Twitch chat ein:</p>
+        <input type="text" id="cardCodesInput" placeholder="Name und Codes eingeben...">
+        <button onclick="loadCollection()">Album anzeigen</button>
+        <div id="userWelcome"></div>
     </div>
 
-    <!-- Hier landen dynamisch alle 100 Karten -->
-    <div class="album-grid" id="albumGrid"></div>
+    <div class="collection-grid" id="collectionGrid">
+        <div class="info-text">Lade alle Karten...</div>
+    </div>
 
-    <!-- Deine echten Kartennamen/Logik einbinden -->
     <script src="cards.js"></script>
-
     <script>
-        // Deine Sitejet-Links (1 bis 100)
-        const cardImages = {
-            1: "https://inter-cdn.com/images/0/27780474/1-p502PcHz9SQ7ySmU7RPBFw.png",
-            2: "https://inter-cdn.com/images/0/27780500/2-Kueobd4GioNPosgIxS8X4Q.png",
-            3: "https://inter-cdn.com/images/0/27780523/3-pGB3qwbBNHQcfvhBuvRd1w.png",
-            4: "https://inter-cdn.com/images/0/27780546/4-RfYMZ9Wd2gBxDbZQwSGNKQ.png",
-            5: "https://inter-cdn.com/images/0/27780580/5-xtG-jXrEQVuSrjusqHmWRA.png",
-            6: "https://inter-cdn.com/images/0/27780603/6-8Wx8IVId2rpARn1y-zEXtg.png",
-            7: "https://inter-cdn.com/images/0/27780624/7-ciseXMqmDFYIcWQ_6UP5Cg.png",
-            8: "https://inter-cdn.com/images/0/27780645/8-j7mrH4RqD9xT4Wlwa2yjUw.png",
-            9: "https://inter-cdn.com/images/0/27780670/9-j_MgSn-oyZZVf-LFDo-C7Q.png",
-            10: "https://inter-cdn.com/images/0/27780475/10-ncfi8bBqepnK4dVoCq0DKA.png",
-            11: "https://inter-cdn.com/images/0/27780480/11-Qb1G6v6yvggkybGwz_8-cA.png",
-            12: "https://inter-cdn.com/images/0/27780481/12-hP_6Ptv8-nbQJnisTsej2g.png",
-            13: "https://inter-cdn.com/images/0/27780483/13-M6mCXYejy6-cULHgOpZ6kw.png",
-            14: "https://inter-cdn.com/images/0/27780486/14-FrjHjmIIraCwcoAtPNF7qA.png",
-            15: "https://inter-cdn.com/images/0/27780487/15-0ymCRAJAJZQxUb6FtirmNA.png",
-            16: "https://inter-cdn.com/images/0/27780488/16--2rVXfprVt0wJFuEaOMqpQ.png",
-            17: "https://inter-cdn.com/images/0/27780489/17-PmPaMLrkusOVUPyqlwQksA.png",
-            18: "https://inter-cdn.com/images/0/27780495/18-0cHW1QzLoJxVgcRlx44y4A.png",
-            19: "https://inter-cdn.com/images/0/27780498/19-30ks1zxf6vEQasV3BbMZmQ.png",
-            20: "https://inter-cdn.com/images/0/27780501/20-ADqXJtgq9KbUPRmaKWPE9w.png",
-            21: "https://inter-cdn.com/images/0/27780503/21-9i4_8c6C_rVAgOo40yv2Qg.png",
-            22: "https://inter-cdn.com/images/0/27780505/22-kRKk-ZMnS6BnHr4oufoPQQ.png",
-            23: "https://inter-cdn.com/images/0/27780507/23-qTeerpkfgKYncGxFsRFUKw.png",
-            24: "https://inter-cdn.com/images/0/27780510/24-9-0cB2qI67c0fIDdtaOYfw.png",
-            25: "https://inter-cdn.com/images/0/27780513/25-zxtIHZkgG5VbZVQxIeSnIg.png",
-            26: "https://inter-cdn.com/images/0/27780515/26-37t08cyN5fLoVDLVGS3WlQ.png",
-            27: "https://inter-cdn.com/images/0/27780516/27-4bvyTZRiYq3HBiHbQjWkHw.png",
-            28: "https://inter-cdn.com/images/0/27780519/28-LzK2Oxr914lPR8joudUHlw.png",
-            29: "https://inter-cdn.com/images/0/27780522/29-vYmRGyeRvXuAO8oFfFtOqQ.png",
-            30: "https://inter-cdn.com/images/0/27780525/30-8d8sOfQy9pRyhSOnpVog2A.png",
-            31: "https://inter-cdn.com/images/0/27780526/31-au_T9IvvouJ4xeuph8FBDw.png",
-            32: "https://inter-cdn.com/images/0/27780528/32-VJwQEkgzU4QPr2ejP-oF0Q.png",
-            33: "https://inter-cdn.com/images/0/27780530/33-kJA_ece4ET8eHONsVTEVzA.png",
-            34: "https://inter-cdn.com/images/0/27780531/34-hoPbDPV4mOewvsfta5gJ8Q.png",
-            35: "https://inter-cdn.com/images/0/27780532/35-zJI2hUc3hzzYDq6uh5ms8w.png",
-            36: "https://inter-cdn.com/images/0/27780534/36-pvKQ_ZceIVGXrymNvbaPhA.png",
-            37: "https://inter-cdn.com/images/0/27780537/37-8aao5oTro0y1953DOISA9Q.png",
-            38: "https://inter-cdn.com/images/0/27780540/38-t5c5ea6cFlY-fC-iFwaI0A.png",
-            39: "https://inter-cdn.com/images/0/27780543/39-drYhonZBcV8PjgIAfPKnQA.png",
-            40: "https://inter-cdn.com/images/0/27780549/40-dFzEFzfmMsVrxvjJ1M93dQ.png",
-            41: "https://inter-cdn.com/images/0/27780552/41-KnuKWT-_L5WFb6vO2B1EkA.png",
-            42: "https://inter-cdn.com/images/0/27780558/42-qixmUx5W2LJ8Twgn0VLuNw.png",
-            43: "https://inter-cdn.com/images/0/27780560/43-XTYho7oSZjPoghRoA_HKcw.png",
-            44: "https://inter-cdn.com/images/0/27780563/44-OpF32anjIoGinA1udVeMvw.png",
-            45: "https://inter-cdn.com/images/0/27780568/45-H_SoEXlKeVWzzQ0vtDxQ5w.png",
-            46: "https://inter-cdn.com/images/0/27780571/46-Xgj_QBSirPscnPr1YKN0aQ.png",
-            47: "https://inter-cdn.com/images/0/27780574/47-vm6qsPeDJPhz48mdtGWSww.png",
-            48: "https://inter-cdn.com/images/0/27780577/48-Oi7n_PvF4NJzPbHJGUXi5Q.png",
-            49: "https://inter-cdn.com/images/0/27780579/49-3j1-RRFJoZzGhz-1sMcl3Q.png",
-            50: "https://inter-cdn.com/images/0/27780582/50-hUDTrmMgRKt8fh8Q6Dx4Sw.png",
-            51: "https://inter-cdn.com/images/0/27780583/51-UP8TUdDxxvfpsB5d6LqUyg.png",
-            52: "https://inter-cdn.com/images/0/27780586/52-vyC6GsHwQFhGZWaFUP-VTA.png",
-            53: "https://inter-cdn.com/images/0/27780588/53-FqEA9yNWG39FreCF8N10CA.png",
-            54: "https://inter-cdn.com/images/0/27780589/54-_WNTb1XpsUQJpj0J-m0dZg.png",
-            55: "https://inter-cdn.com/images/0/27780591/55-qG8zLFyiAQdDL03UYpvGZg.png",
-            56: "https://inter-cdn.com/images/0/27780594/56-Q2lrWt0CmZNAb4WeZ02Q7g.png",
-            57: "https://inter-cdn.com/images/0/27780597/57-GOwaIb_2J9CeZ2FRtSQ4FQ.png",
-            58: "https://inter-cdn.com/images/0/27780598/58-WqXiOOJfI7UqZnMYBYLX9Q.png",
-            59: "https://inter-cdn.com/images/0/27780600/59-OFUbEcjvJFf8dgn8KZ0IBw.png",
-            60: "https://inter-cdn.com/images/0/27780606/60-S-z0jt2zOywMhCxvWIs34A.png",
-            61: "https://inter-cdn.com/images/0/27780607/61-YSMN0Ewb142u-tDOdjAXoA.png",
-            62: "https://inter-cdn.com/images/0/27780608/62-wkTbhCNi5lLIW1y_XerYDw.png",
-            63: "https://inter-cdn.com/images/0/27780609/63-WDV_xY3Wt5YpKwjcVMaLSg.png",
-            64: "https://inter-cdn.com/images/0/27780610/64-DXpjU60ZQsGBpCk9l-YK1w.png",
-            65: "https://inter-cdn.com/images/0/27780613/65-buaX8cdmwQE2Wl7GAQ0zKQ.png",
-            66: "https://inter-cdn.com/images/0/27780616/66-W1vHL6dMeF9A5D1VMXGyqg.png",
-            67: "https://inter-cdn.com/images/0/27780619/67-_xCC0-8H8MLDJsL_WI1VtA.png",
-            68: "https://inter-cdn.com/images/0/27780621/68-2MDg4kTmwdQRT8j_cnceDg.png",
-            69: "https://inter-cdn.com/images/0/27780622/69-zG7cd_AeJKi0HDRdyB-puQ.png",
-            70: "https://inter-cdn.com/images/0/27780625/70-oyTlSQLBWYzKFk5GdIDQ6Q.png",
-            71: "https://inter-cdn.com/images/0/27780627/71-RLnm3T5WM39XJScE1vyKKg.png",
-            72: "https://inter-cdn.com/images/0/27780630/72-RtHS0k1k7w7rQcby0OxvRQ.png",
-            73: "https://inter-cdn.com/images/0/27780631/73-nCLw1mSp_2REi8eK4n2xGw.png",
-            74: "https://inter-cdn.com/images/0/27780634/74-H4NhSpBy-gOsp0uAt1gn4A.png",
-            75: "https://inter-cdn.com/images/0/27780637/75-Z3tK0EVyuytwbcTj1kE77Q.png",
-            76: "https://inter-cdn.com/images/0/27780639/76-fU1Cc0HNjjU_sqp_gOY1uQ.png",
-            77: "https://inter-cdn.com/images/0/27780641/77-1xG7gNBb209flh7YVPjzBg.png",
-            78: "https://inter-cdn.com/images/0/27780642/78-dTW7wkZRihqjFj2v7QIlQw.png",
-            79: "https://inter-cdn.com/images/0/27780643/79-w9IYUdjNM2zYw7mpG6izbQ.png",
-            80: "https://inter-cdn.com/images/0/27780646/80-ViC5Mt6gSGDWozxSQ1Ce5g.png",
-            81: "https://inter-cdn.com/images/0/27780647/81-ofPRI8IawK59lLiu4xbwJg.png",
-            82: "https://inter-cdn.com/images/0/27780649/82-z_QS2wWa7q0rH03ng3a_Og.png",
-            83: "https://inter-cdn.com/images/0/27780651/83-c6tiHVb5Ib73PyEOXHWiaQ.png",
-            84: "https://inter-cdn.com/images/0/27780654/84-uKtSKMdQniUCNzRc_NDTJw.png",
-            85: "https://inter-cdn.com/images/0/27780655/85-Jmkj9dx2sUtPPHTuenmkxQ.png",
-            86: "https://inter-cdn.com/images/0/27780657/86-fOENfhdXwRDZUiuwuG9I2g.png",
-            87: "https://inter-cdn.com/images/0/27780658/87-8GSinvoyJtA9Tp2A6pM8lQ.png",
-            88: "https://inter-cdn.com/images/0/27780667/88-c7-44Scb2deMbaC1qiUgCg.png",
-            89: "https://inter-cdn.com/images/0/27780669/89-lR6GgoSzjcHUD26p_BByow.png",
-            90: "https://inter-cdn.com/images/0/27780672/90-yHwnmrCrxN0FpMv8AXnuPA.png",
-            91: "https://inter-cdn.com/images/0/27780675/91-4LxDKVOA83reRc4AAsEouA.png",
-            92: "https://inter-cdn.com/images/0/27780679/92-9MEr4APIXUcF-MMBuiRQ4g.png",
-            93: "https://inter-cdn.com/images/0/27780681/93-hApKOfgz4ko9w-_QcoWMfA.png",
-            94: "https://inter-cdn.com/images/0/27780682/94-RAygh1A3uvrLL7t77DVNWA.png",
-            95: "https://inter-cdn.com/images/0/27780685/95-O24hvjkvbra5SuzpMksCfQ.png",
-            96: "https://inter-cdn.com/images/0/27780687/96-k93C-1lblsDxy56CB1Lbog.png",
-            97: "https://inter-cdn.com/images/0/27780690/97-0Nuid4dkAFAyVB7IMLxeaA.png",
-            98: "https://inter-cdn.com/images/0/27780693/98-S8IdE2sqLCVMnqHRz5O9cA.png",
-            99: "https://inter-cdn.com/images/0/27780696/99-WUw3b99qfPnEFsHKRdQZ7Q.png",
-            100: "https://inter-cdn.com/images/0/27780477/100-7c8SbzC7cnsrcfkBYT9A_A.png"
-        };
-
-        // Grid aufbauen: Holt sich die Namen automatisch aus deiner cards.js
-        function initGrid(unlockedIds = []) {
-            const grid = document.getElementById('albumGrid');
-            grid.innerHTML = '';
-
-            for (let i = 1; i <= 100; i++) {
-                const isUnlocked = unlockedIds.includes(i.toString());
-                
-                let cardName = `Karte #${i}`;
-                if (typeof window.allCards !== 'undefined') {
-                    const found = window.allCards.find(c => c.cardId == i || c.id == i);
-                    if (found) cardName = found.cardName || found.name;
-                } else if (typeof window.cards !== 'undefined') {
-                    const found = window.cards.find(c => c.cardId == i || c.id == i);
-                    if (found) cardName = found.cardName || found.name;
-                }
-
-                let imageUrl = cardImages[i];
-                if (!imageUrl || imageUrl.trim() === "") {
-                    imageUrl = `https://placehold.co/150x200/222/FFF?text=Card+${i}`;
-                }
-
-                const cardDiv = document.createElement('div');
-                cardDiv.className = `album-card ${isUnlocked ? 'unlocked' : ''}`;
-                cardDiv.innerHTML = `
-                    <div class="card-number">#${i}</div>
-                    <img src="${imageUrl}" alt="${cardName}" onerror="this.src='https://placehold.co/150x200/222/FFF?text=Error'">
-                    <div class="card-name">${cardName}</div>
-                `;
-                grid.appendChild(cardDiv);
-            }
+        function getDatabase() {
+            if (typeof cardDatabase !== 'undefined') return cardDatabase;
+            if (typeof cards !== 'undefined') return cards;
+            if (typeof allCards !== 'undefined') return allCards;
+            return [];
         }
 
-        // Lädt die User-Daten vom Server (Sicher mit Kleinbuchstaben & ohne Leerzeichen)
-        async function loadCollection() {
-            let rawInput = document.getElementById('usernameInput').value.trim();
-            const statusMsg = document.getElementById('status-msg');
+        window.onload = function() {
+            renderAlbum([]);
+        };
+
+        function loadCollection() {
+            let rawInput = document.getElementById('cardCodesInput').value.trim();
+            const welcomeEl = document.getElementById('userWelcome');
+            welcomeEl.innerHTML = '';
 
             if (!rawInput) {
-                alert("Bitte gib einen Namen ein!");
+                renderAlbum([]);
                 return;
             }
 
-            const username = rawInput.toLowerCase();
+            let twitchName = "";
+            let codesString = rawInput;
 
-            statusMsg.innerText = `Lade Sammlung von ${rawInput}...`;
-
-            try {
-                const response = await fetch(`users/${username}.json?` + Date.now());
+            let firstSpace = rawInput.indexOf(' ');
+            if (firstSpace !== -1) {
+                let potentialName = rawInput.substring(0, firstSpace).trim();
+                let potentialCodes = rawInput.substring(firstSpace + 1).trim();
                 
-                if (response.ok) {
-                    const unlockedCards = await response.json(); 
-                    initGrid(unlockedCards);
-                    statusMsg.innerText = `Sammlung von ${rawInput} geladen! (${unlockedCards.length} / 100 Karten gesammelt)`;
-                } else {
-                    initGrid([]);
-                    statusMsg.innerText = `Keine gespeicherte Sammlung für "${rawInput}" gefunden. Öffne erst ein Booster im Stream!`;
-                }
-            } catch (err) {
-                if (username === "alex") {
-                    initGrid(["1", "2", "5", "10", "42"]);
-                    statusMsg.innerText = `[TEST-MODUS] Simulierte Sammlung für ${rawInput} geladen.`;
-                } else {
-                    initGrid([]);
-                    statusMsg.innerText = `Keine Daten gefunden für "${rawInput}".`;
+                if (/\d/.test(potentialCodes)) {
+                    twitchName = potentialName;
+                    codesString = potentialCodes;
+                    welcomeEl.innerHTML = `Sammlung von: ${twitchName}`;
                 }
             }
+
+            codesString = codesString.replace(/^[:,\s]+/, '');
+            let userIds = codesString.split(',').map(id => String(id.trim())).filter(id => id !== '');
+
+            renderAlbum(userIds);
         }
 
-        // Inititales leeres Grid beim Aufruf anzeigen
-        initGrid([]);
+        function renderAlbum(unlockedIds) {
+            const grid = document.getElementById('collectionGrid');
+            grid.innerHTML = '';
+
+            const db = getDatabase();
+            if (db.length === 0) {
+                grid.innerHTML = '<div class="info-text" style="color:#e74c3c;">Fehler: Konnte keine Kartendaten in cards.js finden!</div>';
+                return;
+            }
+
+            db.forEach(card => {
+                const cardIdVal = String(card.cardId || card.id);
+                const isUnlocked = unlockedIds.includes(cardIdVal);
+
+                const rarity = card.rarity || 'Common';
+                const raritySlug = rarity.replace(' ', '-');
+                const textClass = `text-${raritySlug}`;
+                const cardNameVal = card.cardName || card.name || 'Unbekannt';
+
+                const cardDiv = document.createElement('div');
+
+                if (isUnlocked) {
+                    const imagePath = `images/${cardIdVal}.png`;
+                    cardDiv.className = `card-slot slot-${raritySlug}`;
+                    cardDiv.innerHTML = `
+                        <div class="card-inner">
+                            <div class="rarity-header ${textClass}">${rarity}</div>
+                            <div class="image-wrapper">
+                                <img src="${imagePath}" alt="${cardNameVal}" onerror="this.src='placeholder.png'">
+                            </div>
+                            <div class="card-name">${cardNameVal}</div>
+                        </div>
+                    `;
+                } else {
+                    cardDiv.className = `card-slot locked slot-${raritySlug}`;
+                    cardDiv.innerHTML = `
+                        <div class="card-inner">
+                            <div class="rarity-header ${textClass}">${rarity}</div>
+                            <div class="image-wrapper">
+                                <img src="kartenruecken.png" alt="Versteckt" onerror="this.src='placeholder.png'">
+                            </div>
+                            <div class="card-name" style="color: #666;">#${cardIdVal} Unbekannt</div>
+                        </div>
+                    `;
+                }
+
+                grid.appendChild(cardDiv);
+            });
+        }
     </script>
 </body>
 </html>
