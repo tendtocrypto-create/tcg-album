@@ -79,5 +79,41 @@ function openBoosterPack() {
         pack.push(randomCard);
     }
 
+    // =========================================================
+    // AUTOMATISCHE WEITERLEITUNG AN STREAMER.BOT (NEU)
+    // =========================================================
+    
+    // 1. Zieht die reinen Kartennummern heraus und fügt sie mit Komma zusammen (z.B. "5,12,88,4,21")
+    let gezogeneNummern = pack.map(c => c.cardNumber).join(",");
+
+    // 2. Holt sich den Namen aus deiner lokalen user.txt auf deinem PC
+    fetch('user.txt')
+        .then(response => response.text())
+        .then(username => {
+            let saubererName = username.trim().toLowerCase();
+
+            // 3. Sendet die Daten im Hintergrund an den Server von Streamer.bot
+            fetch("http://localhost:8080/DoAction", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    action: {
+                        name: "Karten Speichern" // Dieser Name muss exakt so in Streamer.bot als Action heißen!
+                    },
+                    args: {
+                        twitchUser: saubererName,
+                        gezogeneKarten: gezogeneNummern
+                    }
+                })
+            })
+            .then(res => console.log("Karten erfolgreich an Streamer.bot übertragen!"))
+            .catch(err => console.error("Fehler beim Senden an Streamer.bot:", err));
+        })
+        .catch(err => console.error("Konnte user.txt nicht auslesen:", err));
+
+    // =========================================================
+
     return pack;
 }
