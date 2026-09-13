@@ -178,8 +178,8 @@
     <h1>Meine TCG Kartensammlung</h1>
     
     <div class="input-section">
-        <p style="margin-top:0; font-size: 14px; color:#ccc;">Tippe hier die komplette Zeile aus dem Twitch chat ein:</p>
-        <input type="text" id="cardCodesInput" placeholder="Name und Codes eingeben...">
+        <p style="margin-top:0; font-size: 14px; color:#ccc;">Gib deinen Twitch-Namen ein:</p>
+<input type="text" id="cardCodesInput" placeholder="Twitch-Name eingeben...">
         <button onclick="loadCollection()">Album anzeigen</button>
         <div id="userWelcome"></div>
     </div>
@@ -201,36 +201,35 @@
             renderAlbum([]);
         };
 
-        function loadCollection() {
-            let rawInput = document.getElementById('cardCodesInput').value.trim();
-            const welcomeEl = document.getElementById('userWelcome');
-            welcomeEl.innerHTML = '';
+        const GH_USER = "tendtocrypto-create";
+const GH_REPO = "tcg-album";
 
-            if (!rawInput) {
-                renderAlbum([]);
-                return;
-            }
+async function loadCollection() {
+    const name = document.getElementById('cardCodesInput').value.trim().toLowerCase();
+    const welcomeEl = document.getElementById('userWelcome');
 
-            let twitchName = "";
-            let codesString = rawInput;
+    if (!name) { welcomeEl.innerHTML = ''; renderAlbum([]); return; }
 
-            let firstSpace = rawInput.indexOf(' ');
-            if (firstSpace !== -1) {
-                let potentialName = rawInput.substring(0, firstSpace).trim();
-                let potentialCodes = rawInput.substring(firstSpace + 1).trim();
-                
-                if (/\d/.test(potentialCodes)) {
-                    twitchName = potentialName;
-                    codesString = potentialCodes;
-                    welcomeEl.innerHTML = `Sammlung von: ${twitchName}`;
-                }
-            }
+    welcomeEl.innerHTML = 'Lade…';
+    try {
+        const url = `https://raw.githubusercontent.com/${GH_USER}/${GH_REPO}/main/users/${name}.json?t=${Date.now()}`;
+        const res = await fetch(url, { cache: 'no-store' });
 
-            codesString = codesString.replace(/^[:,\s]+/, '');
-            let userIds = codesString.split(',').map(id => String(id.trim())).filter(id => id !== '');
-
-            renderAlbum(userIds);
+        if (res.status === 404) {
+            welcomeEl.innerHTML = `Keine Sammlung für "${name}" gefunden`;
+            renderAlbum([]);
+            return;
         }
+        if (!res.ok) throw new Error(res.status);
+
+        const ids = JSON.parse(await res.text()).map(String);
+        welcomeEl.innerHTML = `Sammlung von: ${name} — ${ids.length} Karten`;
+        renderAlbum(ids);
+    } catch (e) {
+        welcomeEl.innerHTML = 'Fehler beim Laden';
+        renderAlbum([]);
+    }
+}
 
         function renderAlbum(unlockedIds) {
             const grid = document.getElementById('collectionGrid');
