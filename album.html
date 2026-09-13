@@ -170,7 +170,42 @@
             color: #888;
             margin-top: 20px;
             font-size: 14px;
-        }
+        } 
+
+.card-slot.unlocked { cursor: pointer; transition: transform 0.15s; }
+.card-slot.unlocked:hover { transform: scale(1.04); }
+
+#lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 999;
+    justify-content: center;
+    align-items: center;
+}
+#lightbox.open { display: flex; }
+
+#lightbox img {
+    max-width: 90vw;
+    max-height: 85vh;
+    border-radius: 14px;
+    box-shadow: 0 0 40px rgba(0,0,0,0.9);
+    animation: pop 0.2s ease-out;
+}
+@keyframes pop {
+    from { transform: scale(0.85); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+}
+
+#lightbox .close-hint {
+    position: absolute;
+    top: 20px; right: 30px;
+    color: #f1c40f;
+    font-size: 32px;
+    font-weight: bold;
+    cursor: pointer;
+}
     </style>
 </head>
 <body>
@@ -260,7 +295,8 @@ async function loadCollection() {
 
                 if (isUnlocked) {
                     const imagePath = `images/${cardIdVal}.png`;
-                    cardDiv.className = `card-slot slot-${raritySlug}`;
+                    cardDiv.className = `card-slot unlocked slot-${raritySlug}`;
+cardDiv.onclick = () => openLightbox(imagePath);
                     cardDiv.innerHTML = `
                         <div class="card-inner">
                             <div class="rarity-header ${textClass}">${rarity}</div>
@@ -283,9 +319,26 @@ async function loadCollection() {
                     `;
                 }
 
-                grid.appendChild(cardDiv);
+                                grid.appendChild(cardDiv);
             });
         }
+
+function openLightbox(src) {
+    document.getElementById('lightboxImg').src = src;
+    document.getElementById('lightbox').classList.add('open');
+}
+
+function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('open');
+}
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeLightbox();
+});
     </script>
+<div id="lightbox" onclick="closeLightbox()">
+    <div class="close-hint">&times;</div>
+    <img id="lightboxImg" src="" alt="">
+</div>
 </body>
 </html>
