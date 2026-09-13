@@ -198,8 +198,14 @@
         }
 
         window.onload = function() {
-            renderAlbum([]);
-        };
+    const u = new URLSearchParams(location.search).get('u');
+    if (u) {
+        document.getElementById('cardCodesInput').value = u;
+        loadCollection();
+    } else {
+        renderAlbum([]);
+    }
+};
 
         const GH_USER = "tendtocrypto-create";
 const GH_REPO = "tcg-album";
